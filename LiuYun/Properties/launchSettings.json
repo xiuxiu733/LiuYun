@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LiuYun (Unpackaged)": {
+      "commandName": "Project"
+    },
+    "LiuYun (Package)": {
+      "commandName": "MsixPackage"
+    }
+  }
+}
