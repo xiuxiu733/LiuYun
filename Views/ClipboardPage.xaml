@@ -1,0 +1,446 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="LiuYun.Views.ClipboardPage"
+    NavigationCacheMode="Required"
+    x:Name="ClipboardPageRoot"
+    UseSystemFocusVisuals="False"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:LiuYun.Models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Page.Resources>
+    </Page.Resources>
+
+    <Grid Tapped="Page_Tapped">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="LoadingOverlay"
+              Grid.RowSpan="3"
+              Background="{ThemeResource LayerFillColorDefaultBrush}"
+              Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="16">
+                <ProgressRing IsActive="True"
+                              Width="48"
+                              Height="48"/>
+                <TextBlock Text="Loading clipboard history..."
+                           FontSize="13"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <StackPanel x:Name="UpdateBannerContainer"
+                    Grid.Row="0"
+                    Canvas.ZIndex="997"
+                    Spacing="6"
+                    Visibility="Collapsed">
+            <Border x:Name="UpdateBannerCard"
+                    Padding="10,8"
+                    Background="{ThemeResource LiuYunUpdateCardBackgroundBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}">
+                <Grid RowSpacing="0" ColumnSpacing="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock x:Name="UpdateBannerTitleText"
+                                   Text="发现新版本"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"/>
+                        <Button x:Name="UpdateBannerToggleNotesButton"
+                                Width="24"
+                                Height="20"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Padding="0"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                ToolTipService.ToolTip="展开/收起更新说明"
+                                Click="UpdateBannerToggleNotesButton_Click">
+                            <FontIcon x:Name="UpdateBannerToggleGlyph" Glyph="&#xE70D;" FontSize="10"/>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel x:Name="UpdateBannerStatusPanel"
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="3"
+                                Spacing="4"
+                                Visibility="Collapsed">
+                        <TextBlock x:Name="UpdateBannerSubtitleText"
+                                   Visibility="Collapsed"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <ProgressBar x:Name="UpdateBannerProgressBar"
+                                     Height="4"
+                                     Minimum="0"
+                                     Maximum="100"
+                                     Visibility="Collapsed"/>
+                    </StackPanel>
+
+                    <Button x:Name="UpdateBannerInstallButton"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            MinWidth="0"
+                            Height="30"
+                            Padding="6,0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="UpdateBannerInstallButton_Click">
+                        <TextBlock x:Name="UpdateBannerInstallText"
+                                   Text="前往GitHub下载"
+                                   FontSize="12"
+                                   FontWeight="Normal"
+                                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                    </Button>
+
+                    <Button x:Name="UpdateBannerCloseButton"
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            Width="22"
+                            Height="22"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTipService.ToolTip="关闭此提示"
+                            Click="UpdateBannerCloseButton_Click">
+                        <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border x:Name="UpdateBannerDetailsCard"
+                    Padding="12,10"
+                    Background="{ThemeResource LiuYunUpdateCardBackgroundBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}"
+                    Visibility="Collapsed">
+                <Grid ColumnSpacing="10"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="88"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Spacing="6">
+                        <Image Source="ms-appx:///Assets/LiuYun.png"
+                               Width="70"
+                               Height="22"
+                               Stretch="Uniform"/>
+                        <TextBlock x:Name="UpdateBannerDetailsVersionText"
+                                   Text="LiuYun 0.0.0"
+                                   FontSize="11"
+                                   TextAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1"
+                               x:Name="UpdateBannerDetailsNotesText"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               TextAlignment="Left"
+                               VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <ScrollViewer x:Name="ClipboardScrollViewer"
+                      Grid.Row="1"
+                      Padding="0,0,6,0"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollMode="Enabled"
+                      HorizontalScrollMode="Disabled"
+                      ViewChanged="ClipboardScrollViewer_ViewChanged">
+            <ItemsRepeater x:Name="ClipboardItemsRepeater"
+                           Margin="0"
+                           ItemsSource="{x:Bind FilteredItems}">
+                <ItemsRepeater.Layout>
+                    <StackLayout Spacing="3"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:ClipboardItem">
+                        <Grid Margin="0">
+                                <Border x:Name="MainCard"
+                                        Background="{x:Bind OuterCardBackground, Mode=OneWay}"
+                                        BorderThickness="{x:Bind OuterCardBorderThickness, Mode=OneWay}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        CornerRadius="{StaticResource OverlayCornerRadius}"
+                                        Padding="9"
+                                        MinHeight="82"
+                                        VerticalAlignment="Top"
+                                        Tag="{x:Bind}"
+                                        Tapped="ClipboardCard_Tapped">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform X="0"/>
+                                    </Border.RenderTransform>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Grid.Column="0"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Center"
+                                                  MinWidth="0"
+                                                  Margin="0,0,6,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <FontIcon Grid.Column="0"
+                                                          Glyph="{x:Bind ContentKindGlyph}"
+                                                          FontSize="13"
+                                                          Margin="0,0,6,0"
+                                                          VerticalAlignment="Center"/>
+
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{x:Bind ContentKindLabel}"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="12"
+                                                           MaxLines="1"
+                                                           MinWidth="42"
+                                                           TextWrapping="NoWrap"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+
+                                            <Grid Grid.Column="1"
+                                                  VerticalAlignment="Center">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0"
+                                                           Margin="0,0,4,0"
+                                                           Text="{x:Bind DisplayTime}"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                           FontSize="11"/>
+
+                                                <Button Grid.Column="1"
+                                                        Width="20"
+                                                        Height="20"
+                                                        Padding="0"
+                                                        VerticalAlignment="Center"
+                                                        HorizontalAlignment="Right"
+                                                        Tag="{x:Bind}"
+                                                        Tapped="MenuButton_Tapped"
+                                                        Click="MenuButton_Click"
+                                                        Background="Transparent"
+                                                        BorderThickness="0">
+                                                    <FontIcon Glyph="&#xE712;" FontSize="11"/>
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
+
+                                        <Border Grid.Row="1"
+                                                Margin="0,3,0,0"
+                                                Padding="9"
+                                                Background="{x:Bind ContentPanelBackground, Mode=OneWay}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="{x:Bind ContentPanelBorderThickness, Mode=OneWay}"
+                                                CornerRadius="8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <Border Grid.Column="0"
+                                                        Width="108"
+                                                        Height="64"
+                                                        Margin="0,0,10,0"
+                                                        CornerRadius="6"
+                                                        Background="#22000000"
+                                                        Visibility="{x:Bind ImageVisibility}">
+                                                    <Image Source="{x:Bind ImageSource}"
+                                                           Stretch="UniformToFill"/>
+                                                </Border>
+
+                                                <StackPanel Grid.Column="1"
+                                                            VerticalAlignment="Center"
+                                                            Spacing="2">
+                                                    <TextBlock Text="{x:Bind ContentPreviewTitle}"
+                                                               FontWeight="SemiBold"
+                                                               FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Visibility="{x:Bind ContentPreviewTitleVisibility}"/>
+                                                    <TextBlock Text="{x:Bind ContentPreviewSubtitle}"
+                                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                               FontSize="11"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Visibility="{x:Bind ContentPreviewSubtitleVisibility}"/>
+                                                    <TextBlock Text="{x:Bind ContentPreviewBody}"
+                                                               FontSize="12"
+                                                               TextWrapping="Wrap"
+                                                               MaxLines="2"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Visibility="{x:Bind ContentPreviewBodyVisibility}"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <Border x:Name="DeleteButton"
+                                        x:Load="{x:Bind IsInlineActionsLoaded, Mode=OneWay}"
+                                        Width="112"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Stretch"
+                                        Margin="0"
+                                        Padding="6"
+                                        MaxHeight="{Binding ElementName=MainCard, Path=ActualHeight}"
+                                        Opacity="0"
+                                        Visibility="Collapsed"
+                                        IsHitTestVisible="False"
+                                        CornerRadius="{StaticResource OverlayCornerRadius}"
+                                        Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="0"
+                                        Tapped="MenuButton_Tapped">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform X="112"/>
+                                    </Border.RenderTransform>
+                                    <StackPanel VerticalAlignment="Center" Spacing="4">
+                                        <Button Tag="{x:Bind}"
+                                                MinHeight="24"
+                                                Padding="8,2"
+                                                Background="{x:Bind ContentPanelBackground}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{StaticResource OverlayCornerRadius}"
+                                                Tapped="MenuButton_Tapped"
+                                                Click="FavoriteQuickButton_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                                <FontIcon Glyph="&#xE734;" FontSize="11"/>
+                                                <TextBlock x:Name="FavoriteQuickTextBlock"
+                                                           Text="存常用"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Tag="{x:Bind}"
+                                                MinHeight="24"
+                                                Padding="8,2"
+                                                Background="{x:Bind ContentPanelBackground}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{StaticResource OverlayCornerRadius}"
+                                                Tapped="MenuButton_Tapped"
+                                                Click="DeleteQuickButton_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                                <FontIcon Glyph="&#xE74D;" FontSize="11"/>
+                                                <TextBlock Text="删除"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="1"
+                   Text="暂无剪切历史，复制内容再来看哦 (✿◠‿◠)"
+                   Visibility="{x:Bind HistoryEmptyHintVisibility, Mode=OneWay}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   FontSize="13"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+        <Grid Grid.Row="2" Padding="0,2,0,0" ColumnSpacing="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <AutoSuggestBox Grid.Column="0"
+                            x:Name="SearchBox"
+                            Height="30"
+                            HorizontalAlignment="Stretch"
+                            PlaceholderText="Search"
+                            QueryIcon="Find"
+                            TextChanged="SearchBox_TextChanged"
+                            VerticalAlignment="Center">
+                <AutoSuggestBox.Resources>
+                    <StaticResource x:Key="TextControlBackground" ResourceKey="CardBackgroundFillColorDefaultBrush"/>
+                    <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="CardBackgroundFillColorDefaultBrush"/>
+                    <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="CardBackgroundFillColorDefaultBrush"/>
+                    <StaticResource x:Key="TextControlBorderBrush" ResourceKey="CardStrokeColorDefaultBrush"/>
+                    <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="CardStrokeColorDefaultBrush"/>
+                    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="CardStrokeColorDefaultBrush"/>
+                    <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+                </AutoSuggestBox.Resources>
+            </AutoSuggestBox>
+
+            <Button Grid.Column="1"
+                    Width="30"
+                    Height="30"
+                    Padding="0"
+                    Click="OpenEmojiPageButton_Click"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}">
+                <FontIcon Glyph="&#xE899;" FontSize="12"/>
+            </Button>
+
+            <Button x:Name="SettingsActionButton"
+                    Grid.Column="2"
+                    Width="30"
+                    Height="30"
+                    Padding="0"
+                    Click="OpenNavigationHubButton_Click"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource OverlayCornerRadius}">
+                <FontIcon Glyph="&#xE713;" FontSize="12"/>
+            </Button>
+        </Grid>
+
+    </Grid>
+</Page>
+
+

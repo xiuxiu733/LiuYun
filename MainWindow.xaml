@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="LiuYun.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:LiuYun"
+    xmlns:views="using:LiuYun.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="LiuYun">
+
+    <Grid>
+        <Grid x:Name="WindowContentRoot" Padding="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="SidebarGrid"
+                  Width="150"
+                  Background="Transparent"
+                  Visibility="Collapsed">
+                <StackPanel>
+                    <Grid x:Name="AppTitleBar"
+                          Height="32"
+                          Background="Transparent">
+                        <Image x:Name="FlowLogoImage"
+                               Source="ms-appx:///Assets/LiuYun.png"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Width="90"
+                               Height="24"
+                               MinWidth="56"
+                               MaxWidth="96"
+                               Stretch="Uniform"/>
+                    </Grid>
+
+                    <StackPanel Margin="0,20,0,0">
+                        <TextBlock Text="FEATURES"
+                                  FontSize="11"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Margin="16,0,0,8"/>
+
+                        <StackPanel Spacing="4">
+                            <Button x:Name="ClipboardButton"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="16,12"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="ClipboardButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="16"/>
+                                    <TextBlock Text="剪切板" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button x:Name="EmojiButton"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="16,12"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="EmojiButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE899;" FontSize="16"/>
+                                    <TextBlock Text="表情" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,20,0,0">
+                        <TextBlock Text="SETTINGS"
+                                  FontSize="11"
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Margin="16,0,0,8"/>
+
+                        <StackPanel Spacing="4">
+                            <Button x:Name="SettingsButton"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Padding="16,12"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Click="SettingsButton_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <FontIcon Glyph="&#xE713;" FontSize="16"/>
+                                    <TextBlock Text="设置" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <Frame x:Name="rootFrame"
+                   Grid.Column="1"
+                   SourcePageType="views:ClipboardPage"/>
+        </Grid>
+
+        <Border Height="10"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Top"
+                Background="Transparent"
+                PointerPressed="WindowDragHandle_PointerPressed"
+                PointerMoved="WindowDragHandle_PointerMoved"
+                PointerReleased="WindowDragHandle_PointerReleased"
+                PointerCanceled="WindowDragHandle_PointerCanceled"
+                PointerCaptureLost="WindowDragHandle_PointerCaptureLost"/>
+
+        <Border Width="10"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                PointerPressed="WindowDragHandle_PointerPressed"
+                PointerMoved="WindowDragHandle_PointerMoved"
+                PointerReleased="WindowDragHandle_PointerReleased"
+                PointerCanceled="WindowDragHandle_PointerCanceled"
+                PointerCaptureLost="WindowDragHandle_PointerCaptureLost"/>
+
+        <Border Width="10"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                PointerPressed="WindowDragHandle_PointerPressed"
+                PointerMoved="WindowDragHandle_PointerMoved"
+                PointerReleased="WindowDragHandle_PointerReleased"
+                PointerCanceled="WindowDragHandle_PointerCanceled"
+                PointerCaptureLost="WindowDragHandle_PointerCaptureLost"/>
+
+        <Border Height="10"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Bottom"
+                Background="Transparent"
+                PointerPressed="WindowDragHandle_PointerPressed"
+                PointerMoved="WindowDragHandle_PointerMoved"
+                PointerReleased="WindowDragHandle_PointerReleased"
+                PointerCanceled="WindowDragHandle_PointerCanceled"
+                PointerCaptureLost="WindowDragHandle_PointerCaptureLost"/>
+    </Grid>
+</Window>
+
+

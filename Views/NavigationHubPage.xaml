@@ -1,0 +1,358 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="LiuYun.Views.NavigationHubPage"
+    NavigationCacheMode="Required"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="Transparent">
+
+    <Page.Resources>
+        <Style x:Key="HubActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#15000000"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="MinHeight" Value="36"/>
+        </Style>
+
+        <Style x:Key="CategoryCountBadgeBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CategoryCountBadgeTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CategoryLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Padding="12,8,12,4" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="导航页"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1"
+                    Height="30"
+                    Padding="10,0"
+                    VerticalAlignment="Top"
+                    Click="BackButton_Click"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon Glyph="&#xE72B;" FontSize="12"/>
+                    <TextBlock Text="返回"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1"
+                      Padding="12,0,8,12"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="8" Margin="2,0,2,0">
+                    <TextBlock Text="分类筛选" FontWeight="SemiBold" FontSize="12"/>
+                    <Grid ColumnSpacing="6" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="All" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE71D;" FontSize="12"/>
+                                <TextBlock Text="全部" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="AllCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="AllCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Text" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12"/>
+                                <TextBlock Text="文本" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="TextCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="TextCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Code" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE943;" FontSize="12"/>
+                                <TextBlock Text="代码" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="CodeCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="CodeCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="Json" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE943;" FontSize="12"/>
+                                <TextBlock Text="JSON" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="JsonCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="JsonCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="LongNumber" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="12"/>
+                                <TextBlock Text="数字" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="LongNumberCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="LongNumberCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Image" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE91B;" FontSize="12"/>
+                                <TextBlock Text="图片" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="ImageCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="ImageCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="File" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE8B7;" FontSize="12"/>
+                                <TextBlock Text="文件" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="FileCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="FileCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Link" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE71B;" FontSize="12"/>
+                                <TextBlock Text="链接" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="LinkCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="LinkCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                        <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Email" Click="CategoryFilterButton_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE715;" FontSize="12"/>
+                                <TextBlock Text="邮箱" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
+                                <Border x:Name="EmailCategoryCountBadge" Style="{StaticResource CategoryCountBadgeBorderStyle}">
+                                    <TextBlock x:Name="EmailCategoryCountText" Text="0" Style="{StaticResource CategoryCountBadgeTextStyle}"/>
+                                </Border>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="8" Margin="2,0,2,0">
+                    <TextBlock Text="时间筛选" FontWeight="SemiBold"/>
+                    <Grid ColumnSpacing="8" RowSpacing="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="快速筛选"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        <Border Grid.Row="0"
+                                Grid.RowSpan="3"
+                                Grid.Column="1"
+                                Width="1"
+                                Margin="2,0"
+                                Background="{ThemeResource TextFillColorSecondaryBrush}"
+                                Opacity="0.28"/>
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="2"
+                                   Text="自由筛选"
+                                   FontSize="11"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                        <Grid Grid.Row="1"
+                              Grid.RowSpan="2"
+                              Grid.Column="0"
+                              RowSpacing="6"
+                              ColumnSpacing="6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Row="0"
+                                    Grid.Column="0"
+                                    Content="今天"
+                                    Padding="10,6"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="QuickTodayFilterButton_Click"/>
+                            <Button Grid.Row="0"
+                                    Grid.Column="1"
+                                    Content="14天"
+                                    Padding="10,6"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="QuickFourteenDaysFilterButton_Click"/>
+                            <Button Grid.Row="1"
+                                    Grid.Column="0"
+                                    Content="7天"
+                                    Padding="10,6"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="QuickSevenDaysFilterButton_Click"/>
+                            <Button Grid.Row="1"
+                                    Grid.Column="1"
+                                    Content="全部"
+                                    Padding="10,6"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="QuickAllFilterButton_Click"/>
+                        </Grid>
+
+                        <CalendarDatePicker x:Name="StartDatePicker"
+                                            Grid.Row="1"
+                                            Grid.Column="2"
+                                            PlaceholderText="开始"/>
+                        <Button Grid.Row="1"
+                                Grid.Column="3"
+                                Content="应用"
+                                Padding="10,6"
+                                Style="{StaticResource HubActionButtonStyle}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Click="ApplyTimeFilterButton_Click"/>
+
+                        <CalendarDatePicker x:Name="EndDatePicker"
+                                            Grid.Row="2"
+                                            Grid.Column="2"
+                                            PlaceholderText="结束"/>
+                        <Button Grid.Row="2"
+                                Grid.Column="3"
+                                Content="清除"
+                                Padding="10,6"
+                                Style="{StaticResource HubActionButtonStyle}"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Click="ClearTimeFilterButton_Click"/>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="8" Margin="2,0,2,0">
+                    <TextBlock Text="快捷操作" FontWeight="SemiBold"/>
+                    <StackPanel Spacing="6">
+                        <Grid ColumnSpacing="8" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       x:Name="ClearCurrentDescriptionText"
+                                       Text="清空全部剪切历史记录"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <Button Grid.Column="1"
+                                    x:Name="ClearCurrentButton"
+                                    Content="清空当前列表"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="ClearCurrentButton_Click"/>
+                        </Grid>
+
+                        <Grid ColumnSpacing="8" VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="前往设置页面管理应用行为"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                            <Button Grid.Column="1"
+                                    Content="打开设置"
+                                    Style="{StaticResource HubActionButtonStyle}"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center"
+                                    Click="OpenSettingsPageButton_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock x:Name="StatusText"
+                           Text=""
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
+
+

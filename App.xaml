@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="LiuYun.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:LiuYun">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- Other merged dictionaries here -->
+            </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="LiuYunUpdateCardBackgroundBrush" Color="#FFE9EEF4"/>
+                    <SolidColorBrush x:Key="LiuYunSettingsCardBackgroundBrush" Color="#FFE8EDF3"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="LiuYunUpdateCardBackgroundBrush" Color="#0DFFFFFF"/>
+                    <SolidColorBrush x:Key="LiuYunSettingsCardBackgroundBrush" Color="#0DFFFFFF"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="LiuYunUpdateCardBackgroundBrush" Color="#0DFFFFFF"/>
+                    <SolidColorBrush x:Key="LiuYunSettingsCardBackgroundBrush" Color="#0DFFFFFF"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <!-- Other app resources here -->
+            <CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>
+            <SolidColorBrush x:Key="OverlayStableBrush" Color="#CC1F3A63"/>
+            <AcrylicBrush x:Key="OverlayDynamicAcrylicBrush"
+                          TintColor="#CC1F3A63"
+                          TintOpacity="0.68"
+                          FallbackColor="#CC1F3A63"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
