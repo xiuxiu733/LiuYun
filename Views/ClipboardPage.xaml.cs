@@ -1169,6 +1169,8 @@ namespace LiuYun.Views
                 return;
             }
 
+            PromoteClipboardItem(selected);
+
             _isSubmittingKeyboardSelection = true;
             try
             {
@@ -1352,6 +1354,45 @@ namespace LiuYun.Views
             }
         }
 
+        private void PromoteClipboardItem(ClipboardItem item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            DateTime now = DateTime.Now;
+
+            if (_currentListMode == ClipboardListMode.History && item.Id > 0)
+            {
+                item.Timestamp = now;
+                bool updated = DatabaseService.UpdateClipboardItemTimestamp(item.Id, now);
+                if (updated)
+                {
+                    RefreshFilteredItems();
+                }
+
+                return;
+            }
+
+            if (_currentListMode == ClipboardListMode.Favorite)
+            {
+                var historyMatch = clipboardModel?.Items?.FirstOrDefault(x =>
+                    x.ContentType == item.ContentType &&
+                    string.Equals(x.ContentHash, item.ContentHash, StringComparison.Ordinal));
+
+                if (historyMatch != null && historyMatch.Id > 0)
+                {
+                    historyMatch.Timestamp = now;
+                    bool updated = DatabaseService.UpdateClipboardItemTimestamp(historyMatch.Id, now);
+                    if (updated)
+                    {
+                        RefreshFilteredItems();
+                    }
+                }
+            }
+        }
+
         private async void ClipboardCard_Tapped(object sender, TappedRoutedEventArgs e)
         {
             e.Handled = true;
@@ -1363,6 +1404,8 @@ namespace LiuYun.Views
 
             if (sender is Border border && border.Tag is ClipboardItem item)
             {
+                PromoteClipboardItem(item);
+
                 _isSubmittingKeyboardSelection = true;
                 try
                 {
