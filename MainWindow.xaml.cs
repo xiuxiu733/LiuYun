@@ -276,6 +276,59 @@ namespace LiuYun
             }
         }
 
+        private static void MoveAppWindowNearCursor(AppWindow appWindow, POINT cursorPoint)
+        {
+            DisplayArea? displayArea = DisplayArea.GetFromPoint(
+                new PointInt32(cursorPoint.X, cursorPoint.Y),
+                DisplayAreaFallback.Primary);
+            RectInt32 workArea = displayArea?.WorkArea ?? new RectInt32(0, 0, 1920, 1080);
+
+            int windowWidth = appWindow.Size.Width > 0 ? appWindow.Size.Width : 520;
+            int windowHeight = appWindow.Size.Height > 0 ? appWindow.Size.Height : 520;
+
+            int minX = workArea.X;
+            int maxX = workArea.X + workArea.Width - windowWidth;
+            if (maxX < minX)
+            {
+                maxX = minX;
+            }
+
+            int rightX = cursorPoint.X + App.CursorPlacementOffsetPx;
+            int leftX = cursorPoint.X - App.CursorPlacementOffsetPx - windowWidth;
+            bool canPlaceRight = rightX <= maxX;
+            bool canPlaceLeft = leftX >= minX;
+
+            int targetX;
+            if (canPlaceRight)
+            {
+                targetX = rightX;
+            }
+            else if (canPlaceLeft)
+            {
+                targetX = leftX;
+            }
+            else
+            {
+                targetX = rightX;
+            }
+
+            int yAbove = cursorPoint.Y - App.CursorPlacementOffsetPx - windowHeight;
+            int yBelow = cursorPoint.Y + App.CursorPlacementOffsetPx;
+            int targetY = yAbove >= workArea.Y ? yAbove : yBelow;
+
+            int minY = workArea.Y;
+            int maxY = workArea.Y + workArea.Height - windowHeight;
+            if (maxY < minY)
+            {
+                maxY = minY;
+            }
+
+            targetX = Math.Clamp(targetX, minX, maxX);
+            targetY = Math.Clamp(targetY, minY, maxY);
+
+            appWindow.Move(new PointInt32(targetX, targetY));
+        }
+
         private void RootFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
         {
             UpdateNavigationButtons(e.SourcePageType);
@@ -297,7 +350,8 @@ namespace LiuYun
                 return;
             }
 
-            if (PopupPlacementConfigService.GetMode() != PopupPlacementMode.FreeDrag)
+            PopupPlacementMode mode = PopupPlacementConfigService.GetMode();
+            if (mode != PopupPlacementMode.FreeDrag && mode != PopupPlacementMode.FollowMouse)
             {
                 return;
             }

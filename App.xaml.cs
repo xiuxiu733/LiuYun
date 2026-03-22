@@ -43,7 +43,7 @@ namespace LiuYun
         private const int ActiveWindowActivationRetries = 4;
         private const float WindowAnimationOffset = 12f;
         private const int ClipboardPreloadLimit = 300;
-        private const int CursorPlacementOffsetPx = 8;
+        public const int CursorPlacementOffsetPx = 8;
         private const string StartupLaunchArgument = "--startup";
         private const string SingleInstanceMutexName = @"Local\LiuYun.SingleInstance.Mutex";
         private const string SingleInstanceActivationEventName = @"Local\LiuYun.SingleInstance.Activate";
