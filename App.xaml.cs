@@ -2258,5 +2258,18 @@ namespace LiuYun
         private const uint SWP_NOACTIVATE = 0x0010;
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+
+        private long _clipboardMonitorSuppressedUntilTicks;
+
+        public void SuppressClipboardMonitorFor(TimeSpan duration)
+        {
+            long suppressionUntil = DateTime.UtcNow.Add(duration).Ticks;
+            Interlocked.Exchange(ref _clipboardMonitorSuppressedUntilTicks, suppressionUntil);
+        }
+
+        public bool IsClipboardMonitorSuppressed()
+        {
+            return DateTime.UtcNow.Ticks < Interlocked.Read(ref _clipboardMonitorSuppressedUntilTicks);
+        }
     }
 }

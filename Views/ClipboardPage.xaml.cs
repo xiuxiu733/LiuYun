@@ -1977,6 +1977,11 @@ namespace LiuYun.Views
                     }
                 }
 
+                if (App.Current is App currentApp)
+                {
+                    currentApp.SuppressClipboardMonitorFor(TimeSpan.FromMilliseconds(1000));
+                }
+
                 var tcs = new TaskCompletionSource<bool>();
                 bool enqueued = DispatcherQueue.TryEnqueue(() =>
                 {
