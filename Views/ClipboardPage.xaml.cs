@@ -56,6 +56,7 @@ namespace LiuYun.Views
         private bool _updateBannerSubscribed;
         private bool _isRefreshingFilteredItems;
         private bool _pendingRefreshAfterCurrentPass;
+        private double? _savedClipboardScrollOffset = null;
         private readonly List<ClipboardItem> _orderedFilteredItems = new List<ClipboardItem>();
         private static readonly bool ManualRepeaterSourceToggleEnabled = false;
 
@@ -621,6 +622,9 @@ namespace LiuYun.Views
         {
             try
             {
+                // prevent other flows from forcing selection to first on next refresh
+                _forceSelectFirstOnNextRefresh = false;
+
                 await Task.Run(() => DatabaseService.DeleteFavoriteClipboardItem(favoriteItem.Id));
                 TryDeleteFavoriteImageFile(favoriteItem.ImagePath);
 
@@ -629,11 +633,37 @@ namespace LiuYun.Views
                     favoriteItem.ClearImageCache();
                 }
 
+                // record neighbor selection to preserve viewport
+                int filteredIndex = -1;
+                ClipboardItem? neighborSelection = null;
+                try
+                {
+                    if (FilteredItems != null)
+                    {
+                        filteredIndex = FilteredItems.IndexOf(favoriteItem);
+                        if (filteredIndex >= 0)
+                        {
+                            if (filteredIndex < FilteredItems.Count - 1)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex + 1];
+                            }
+                            else if (filteredIndex - 1 >= 0)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex - 1];
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore concurrency issues when reading FilteredItems
+                }
+
                 _favoriteItems.Remove(favoriteItem);
 
                 if (ReferenceEquals(_keyboardSelectedItem, favoriteItem))
                 {
-                    SetKeyboardSelectedItem(null);
+                    SetKeyboardSelectedItem(neighborSelection);
                 }
 
                 if (refreshList && _currentListMode == ClipboardListMode.Favorite)
@@ -827,6 +857,9 @@ namespace LiuYun.Views
                 return;
             }
 
+            // save current scroll offset so we can attempt to restore it after incremental updates
+            SaveClipboardScrollOffsetSnapshot();
+
             try
             {
                 _pendingRefreshWhileHidden = false;
@@ -881,6 +914,9 @@ namespace LiuYun.Views
 
                 OnPropertyChanged(nameof(HistoryEmptyHintVisibility));
                 ApplyKeyboardSelectionAfterRefresh();
+
+                // try to restore saved scroll offset if present; otherwise clamp to valid range
+                TryRestoreClipboardScrollOffsetSnapshot();
                 ClampClipboardScrollOffset();
             }
             finally
@@ -1626,6 +1662,54 @@ namespace LiuYun.Views
             });
         }
 
+        private void SaveClipboardScrollOffsetSnapshot()
+        {
+            try
+            {
+                if (ClipboardScrollViewer != null)
+                {
+                    _savedClipboardScrollOffset = ClipboardScrollViewer.VerticalOffset;
+                }
+                else
+                {
+                    _savedClipboardScrollOffset = null;
+                }
+            }
+            catch
+            {
+                _savedClipboardScrollOffset = null;
+            }
+        }
+
+        private void TryRestoreClipboardScrollOffsetSnapshot()
+        {
+            if (_savedClipboardScrollOffset == null || ClipboardScrollViewer == null || DispatcherQueue == null)
+            {
+                _savedClipboardScrollOffset = null;
+                return;
+            }
+
+            double targetOffset = Math.Clamp(_savedClipboardScrollOffset.Value, 0, ClipboardScrollViewer.ScrollableHeight);
+
+            // perform restore after layout passes to ensure ScrollableHeight is accurate
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    ClipboardItemsRepeater?.UpdateLayout();
+                    ClipboardScrollViewer.UpdateLayout();
+                    double clamped = Math.Clamp(targetOffset, 0, ClipboardScrollViewer.ScrollableHeight);
+                    ClipboardScrollViewer.ChangeView(null, clamped, null, true);
+                }
+                catch
+                {
+                    // ignore failures
+                }
+            });
+
+            _savedClipboardScrollOffset = null;
+        }
+
         private void ClampClipboardScrollOffsetCore()
         {
             if (ClipboardScrollViewer == null)
@@ -1895,6 +1979,34 @@ namespace LiuYun.Views
                     }
                 }
 
+
+                // Record neighbor selection to preserve viewport after removal.
+                int filteredIndex = -1;
+                ClipboardItem? neighborSelection = null;
+                try
+                {
+                    if (FilteredItems != null)
+                    {
+                        filteredIndex = FilteredItems.IndexOf(historyItem);
+                        if (filteredIndex >= 0)
+                        {
+                            // prefer next item; if none, pick previous
+                            if (filteredIndex < FilteredItems.Count - 1)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex + 1];
+                            }
+                            else if (filteredIndex - 1 >= 0)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex - 1];
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore any concurrency issues reading FilteredItems
+                }
+
                 bool removedFromCollection = clipboardModel.Items.Remove(historyItem);
                 if (!removedFromCollection && historyItem.Id > 0)
                 {
@@ -1906,19 +2018,13 @@ namespace LiuYun.Views
                     }
                 }
 
+                // If the removed item was the keyboard-selected one, try to select a neighbor to keep viewport stable.
                 if (ReferenceEquals(_keyboardSelectedItem, historyItem))
                 {
-                    SetKeyboardSelectedItem(null);
+                    SetKeyboardSelectedItem(neighborSelection);
                 }
 
-                if (_keyboardSelectedItem == null)
-                {
-                    _forceSelectFirstOnNextRefresh = true;
-                }
-
-                if (refreshList &&
-                    _currentListMode == ClipboardListMode.History &&
-                    !removedFromCollection)
+                if (refreshList && _currentListMode == ClipboardListMode.History)
                 {
                     RefreshFilteredItems();
                 }
