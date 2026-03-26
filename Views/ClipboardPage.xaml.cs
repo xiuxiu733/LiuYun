@@ -17,6 +17,8 @@ using Windows.Foundation;
 using Windows.System;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.Media.Ocr;
+using Windows.Graphics.Imaging;
 using LiuYun.Models;
 using LiuYun.Services;
 
@@ -1955,6 +1957,57 @@ namespace LiuYun.Views
             }
 
             await RemoveFromFavoritesAsync(item);
+        }
+
+        private async void OcrQuickButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.Tag is not ClipboardItem item)
+            {
+                return;
+            }
+
+            if (item.ContentType != ClipboardContentType.Image || string.IsNullOrWhiteSpace(item.ImagePath) || !File.Exists(item.ImagePath))
+            {
+                Debug.WriteLine("OCR: no image available for this item.");
+                return;
+            }
+
+            try
+            {
+                var file = await StorageFile.GetFileFromPathAsync(item.ImagePath);
+                using (var stream = await file.OpenAsync(FileAccessMode.Read))
+                {
+                    var decoder = await BitmapDecoder.CreateAsync(stream);
+                    var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+
+                    var ocrEngine = OcrEngine.TryCreateFromUserProfileLanguages();
+                    if (ocrEngine == null)
+                    {
+                        Debug.WriteLine("OCR engine unavailable on this system.");
+                        return;
+                    }
+
+                    var ocrResult = await ocrEngine.RecognizeAsync(softwareBitmap);
+                    string recognized = ocrResult?.Text ?? string.Empty;
+
+                    if (string.IsNullOrWhiteSpace(recognized))
+                    {
+                        Debug.WriteLine("OCR: no text recognized.");
+                        return;
+                    }
+
+                    var dp = new DataPackage();
+                    dp.SetText(recognized);
+                    Clipboard.SetContent(dp);
+                    Clipboard.Flush();
+
+                    Debug.WriteLine($"OCR: recognized text copied to clipboard (len={recognized.Length}).");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"OCR failed: {ex.Message}");
+            }
         }
 
         private async Task<bool> RemoveFromHistoryAsync(ClipboardItem historyItem, bool refreshList = true)

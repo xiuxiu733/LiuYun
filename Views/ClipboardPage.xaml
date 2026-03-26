@@ -362,6 +362,21 @@
                                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="{StaticResource OverlayCornerRadius}"
+                                                Visibility="{x:Bind ImageVisibility}"
+                                                Tapped="MenuButton_Tapped"
+                                                Click="OcrQuickButton_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                                <FontIcon Glyph="&#xE8A5;" FontSize="11"/>
+                                                <TextBlock Text="识别文字"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Tag="{x:Bind}"
+                                                MinHeight="24"
+                                                Padding="8,2"
+                                                Background="{x:Bind ContentPanelBackground}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{StaticResource OverlayCornerRadius}"
                                                 Tapped="MenuButton_Tapped"
                                                 Click="DeleteQuickButton_Click">
                                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
