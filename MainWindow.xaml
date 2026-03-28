@@ -56,18 +56,6 @@
                                 </StackPanel>
                             </Button>
 
-                            <Button x:Name="EmojiButton"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Left"
-                                    Padding="16,12"
-                                    Background="Transparent"
-                                    BorderThickness="0"
-                                    Click="EmojiButton_Click">
-                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <FontIcon Glyph="&#xE899;" FontSize="16"/>
-                                    <TextBlock Text="表情" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
                         </StackPanel>
                     </StackPanel>
 

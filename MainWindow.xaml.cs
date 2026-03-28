@@ -269,11 +269,73 @@ namespace LiuYun
 
             if (args.WindowActivationState == WindowActivationState.Deactivated)
             {
-                if (App.Current is App app && app.m_window == this && app.AutoHideOnDeactivate)
+                if (App.Current is App app && app.m_window == this)
                 {
-                    _ = app.TriggerWindowHideAsync();
+                    if (app.IsClipboardPinned)
+                    {
+                        // Keep clipboard pinned but allow automatic target switch to the newly activated window.
+                        app.CaptureInvocationWindowFromCurrentForeground();
+                    }
+
+                    if (app.AutoHideOnDeactivate)
+                    {
+                        _ = app.TriggerWindowHideAsync();
+                    }
                 }
             }
+        }
+
+        private static void MoveAppWindowNearCursor(AppWindow appWindow, POINT cursorPoint)
+        {
+            DisplayArea? displayArea = DisplayArea.GetFromPoint(
+                new PointInt32(cursorPoint.X, cursorPoint.Y),
+                DisplayAreaFallback.Primary);
+            RectInt32 workArea = displayArea?.WorkArea ?? new RectInt32(0, 0, 1920, 1080);
+
+            int windowWidth = appWindow.Size.Width > 0 ? appWindow.Size.Width : 520;
+            int windowHeight = appWindow.Size.Height > 0 ? appWindow.Size.Height : 520;
+
+            int minX = workArea.X;
+            int maxX = workArea.X + workArea.Width - windowWidth;
+            if (maxX < minX)
+            {
+                maxX = minX;
+            }
+
+            int rightX = cursorPoint.X + App.CursorPlacementOffsetPx;
+            int leftX = cursorPoint.X - App.CursorPlacementOffsetPx - windowWidth;
+            bool canPlaceRight = rightX <= maxX;
+            bool canPlaceLeft = leftX >= minX;
+
+            int targetX;
+            if (canPlaceRight)
+            {
+                targetX = rightX;
+            }
+            else if (canPlaceLeft)
+            {
+                targetX = leftX;
+            }
+            else
+            {
+                targetX = rightX;
+            }
+
+            int yAbove = cursorPoint.Y - App.CursorPlacementOffsetPx - windowHeight;
+            int yBelow = cursorPoint.Y + App.CursorPlacementOffsetPx;
+            int targetY = yAbove >= workArea.Y ? yAbove : yBelow;
+
+            int minY = workArea.Y;
+            int maxY = workArea.Y + workArea.Height - windowHeight;
+            if (maxY < minY)
+            {
+                maxY = minY;
+            }
+
+            targetX = Math.Clamp(targetX, minX, maxX);
+            targetY = Math.Clamp(targetY, minY, maxY);
+
+            appWindow.Move(new PointInt32(targetX, targetY));
         }
 
         private void RootFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
@@ -297,7 +359,8 @@ namespace LiuYun
                 return;
             }
 
-            if (PopupPlacementConfigService.GetMode() != PopupPlacementMode.FreeDrag)
+            PopupPlacementMode mode = PopupPlacementConfigService.GetMode();
+            if (mode != PopupPlacementMode.FreeDrag && mode != PopupPlacementMode.FollowMouse)
             {
                 return;
             }
@@ -444,16 +507,11 @@ namespace LiuYun
             }
 
             ClipboardButton.Background = transparentBrush;
-            EmojiButton.Background = transparentBrush;
             SettingsButton.Background = transparentBrush;
 
             if (pageType == typeof(LiuYun.Views.ClipboardPage))
             {
                 ClipboardButton.Background = highlightBrush;
-            }
-            else if (pageType == typeof(LiuYun.Views.EmojiPage))
-            {
-                EmojiButton.Background = highlightBrush;
             }
             else if (pageType == typeof(LiuYun.Views.SettingsPage))
             {
@@ -461,7 +519,7 @@ namespace LiuYun
             }
         }
 
-        private void NavigateRoot(Type pageType)
+        internal void NavigateRoot(Type pageType)
         {
             if (rootFrame.Content?.GetType() == pageType)
             {
@@ -486,11 +544,6 @@ namespace LiuYun
         private void ClipboardButton_Click(object sender, RoutedEventArgs e)
         {
             NavigateRoot(typeof(LiuYun.Views.ClipboardPage));
-        }
-
-        private void EmojiButton_Click(object sender, RoutedEventArgs e)
-        {
-            NavigateRoot(typeof(LiuYun.Views.EmojiPage));
         }
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
@@ -736,6 +789,22 @@ namespace LiuYun
 
             SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0,
                 SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_FRAMECHANGED);
+        }
+
+        // Make the window top-most or restore normal z-order
+        public void SetTopMost(bool topMost)
+        {
+            try
+            {
+                IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                IntPtr insertAfter = topMost ? new IntPtr(-1) : new IntPtr(-2);
+                uint flags = (uint)(SWP_NOSIZE | SWP_NOMOVE);
+                SetWindowPos(hWnd, insertAfter, 0, 0, 0, 0, flags);
+            }
+            catch
+            {
+                // ignore failures
+            }
         }
 
         private static double GetDpiScale(IntPtr hWnd)

@@ -33,12 +33,170 @@ namespace LiuYun.Views
 
             AttachClipboardItemsSubscription();
             RefreshCategoryCounts();
+            // Ensure UI reflects current global category and time filters
+            ClipboardFilterState.FilterChanged += ClipboardFilterState_FilterChanged;
+            UpdateActiveCategoryVisual(ClipboardFilterState.Current);
+
+            ClipboardTimeFilterState.FilterChanged += ClipboardTimeFilterState_FilterChanged_Nav;
+            UpdateActiveTimeVisual(ClipboardTimeFilterState.StartTime, ClipboardTimeFilterState.EndTime);
+
+            UpdateStatusTextFromFilter();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             DetachClipboardItemsSubscription();
+            // unsubscribe from global filter changes
+            ClipboardFilterState.FilterChanged -= ClipboardFilterState_FilterChanged;
+            ClipboardTimeFilterState.FilterChanged -= ClipboardTimeFilterState_FilterChanged_Nav;
             base.OnNavigatedFrom(e);
+        }
+
+        private void ClipboardFilterState_FilterChanged(object? sender, ClipboardCategoryFilter filter)
+        {
+            // If no dispatcher queue is available, nothing we can do safely.
+            if (DispatcherQueue == null)
+            {
+                return;
+            }
+
+            // If we're already on the UI thread, update both visual and status immediately.
+            if (DispatcherQueue.HasThreadAccess)
+            {
+                UpdateActiveCategoryVisual(filter);
+                UpdateStatusTextFromFilter();
+                return;
+            }
+
+            // Otherwise, enqueue a single action that updates both to avoid multiple dispatches.
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                UpdateActiveCategoryVisual(filter);
+                UpdateStatusTextFromFilter();
+            });
+        }
+
+        private void UpdateStatusTextFromFilter()
+        {
+            try
+            {
+                var category = ClipboardFilterState.Current;
+                string categoryText = GetCategoryFilterLabel(category);
+
+                StatusText.Text = $"已应用筛选：分类 {categoryText}";
+            }
+            catch
+            {
+            }
+        }
+
+        private void ClipboardTimeFilterState_FilterChanged_Nav(object? sender, EventArgs e)
+        {
+            if (DispatcherQueue == null || DispatcherQueue.HasThreadAccess)
+            {
+                UpdateActiveTimeVisual(ClipboardTimeFilterState.StartTime, ClipboardTimeFilterState.EndTime);
+                return;
+            }
+
+            _ = DispatcherQueue.TryEnqueue(() => UpdateActiveTimeVisual(ClipboardTimeFilterState.StartTime, ClipboardTimeFilterState.EndTime));
+        }
+
+        private void UpdateActiveCategoryVisual(ClipboardCategoryFilter filter)
+        {
+            // List all buttons for easy iteration
+            var allButtons = new Button?[]
+            {
+                AllCategoryButton,
+                TextCategoryButton,
+                CodeCategoryButton,
+                JsonCategoryButton,
+                LongNumberCategoryButton,
+                ImageCategoryButton,
+                FileCategoryButton,
+                LinkCategoryButton,
+                EmailCategoryButton
+            };
+
+            // Dim all buttons first
+            foreach (var btn in allButtons)
+            {
+                if (btn == null)
+                {
+                    continue;
+                }
+
+                btn.Opacity = 0.7;
+            }
+
+            // Determine which button corresponds to the filter and highlight it
+            Button? selected = filter switch
+            {
+                ClipboardCategoryFilter.All => AllCategoryButton,
+                ClipboardCategoryFilter.Text => TextCategoryButton,
+                ClipboardCategoryFilter.Code => CodeCategoryButton,
+                ClipboardCategoryFilter.Json => JsonCategoryButton,
+                ClipboardCategoryFilter.LongNumber => LongNumberCategoryButton,
+                ClipboardCategoryFilter.Image => ImageCategoryButton,
+                ClipboardCategoryFilter.File => FileCategoryButton,
+                ClipboardCategoryFilter.Link => LinkCategoryButton,
+                ClipboardCategoryFilter.Email => EmailCategoryButton,
+                _ => AllCategoryButton
+            };
+
+            if (selected != null)
+            {
+                selected.Opacity = 1.0;
+            }
+        }
+
+        private void UpdateActiveTimeVisual(DateTime? start, DateTime? end)
+        {
+            // Dim all quick buttons and date pickers by default
+            var quickButtons = new Button?[] { QuickTodayButton, QuickSevenDaysButton, QuickFourteenDaysButton, QuickAllButton };
+            foreach (var b in quickButtons)
+            {
+                if (b != null) b.Opacity = 0.7;
+            }
+
+            if (StartDatePicker != null) StartDatePicker.Opacity = 0.7;
+            if (EndDatePicker != null) EndDatePicker.Opacity = 0.7;
+
+            // Decide which quick filter this matches (Today / 7 / 14 / All) or custom
+            if (!start.HasValue && !end.HasValue)
+            {
+                if (QuickAllButton != null) QuickAllButton.Opacity = 1.0;
+                return;
+            }
+
+            DateTime today = DateTime.Today;
+            // Normalize boundaries produced by BuildStartBoundary/BuildEndBoundary
+            DateTime? s = start?.Date;
+            DateTime? e = end?.Date;
+
+            if (s.HasValue && e.HasValue)
+            {
+                if (s.Value == today && e.Value == today)
+                {
+                    if (QuickTodayButton != null) QuickTodayButton.Opacity = 1.0;
+                    return;
+                }
+
+                if (s.Value == today.AddDays(-6) && e.Value == today)
+                {
+                    if (QuickSevenDaysButton != null) QuickSevenDaysButton.Opacity = 1.0;
+                    return;
+                }
+
+                if (s.Value == today.AddDays(-13) && e.Value == today)
+                {
+                    if (QuickFourteenDaysButton != null) QuickFourteenDaysButton.Opacity = 1.0;
+                    return;
+                }
+            }
+
+            // Custom range: highlight the date pickers
+            if (StartDatePicker != null) StartDatePicker.Opacity = 1.0;
+            if (EndDatePicker != null) EndDatePicker.Opacity = 1.0;
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)

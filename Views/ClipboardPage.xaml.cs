@@ -17,6 +17,8 @@ using Windows.Foundation;
 using Windows.System;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.Media.Ocr;
+using Windows.Graphics.Imaging;
 using LiuYun.Models;
 using LiuYun.Services;
 
@@ -43,6 +45,7 @@ namespace LiuYun.Views
         private bool _isLoading = false;
         private Microsoft.UI.Xaml.Media.Animation.Storyboard? _currentDeleteStoryboard;
         private bool _isHostWindowVisible = true;
+        private bool _isWindowPinned = false;
         private bool _pendingRefreshWhileHidden;
         private ClipboardItem? _keyboardSelectedItem;
         private bool _isSubmittingKeyboardSelection;
@@ -56,6 +59,7 @@ namespace LiuYun.Views
         private bool _updateBannerSubscribed;
         private bool _isRefreshingFilteredItems;
         private bool _pendingRefreshAfterCurrentPass;
+        private double? _savedClipboardScrollOffset = null;
         private readonly List<ClipboardItem> _orderedFilteredItems = new List<ClipboardItem>();
         private static readonly bool ManualRepeaterSourceToggleEnabled = false;
 
@@ -85,6 +89,52 @@ namespace LiuYun.Views
             _filterStartTime = ClipboardTimeFilterState.StartTime;
             _filterEndTime = ClipboardTimeFilterState.EndTime;
             AttachPageSubscriptions();
+        }
+
+        private void PinToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isWindowPinned = !_isWindowPinned;
+
+            if (App.Current is App app)
+            {
+                try
+                {
+                    app.IsClipboardPinned = _isWindowPinned;
+                    if (_isWindowPinned)
+                    {
+                        app.BeginAutoHideSuppression();
+                        app.CaptureInvocationWindowFromCurrentForeground();
+                    }
+                    else
+                    {
+                        app.EndAutoHideSuppression();
+                    }
+
+                    try
+                    {
+                        if (app.m_window is MainWindow mainWindow)
+                        {
+                            mainWindow.SetTopMost(_isWindowPinned);
+                        }
+                    }
+                    catch { }
+                }
+                catch { }
+            }
+            ApplyPinVisuals(_isWindowPinned);
+        }
+
+        private void SyncPinButtonFromAppState()
+        {
+            try
+            {
+                if (App.Current is App app)
+                {
+                    _isWindowPinned = app.IsClipboardPinned;
+                    ApplyPinVisuals(_isWindowPinned);
+                }
+            }
+            catch { }
         }
 
         private void AttachPageSubscriptions()
@@ -138,6 +188,8 @@ namespace LiuYun.Views
             _categoryFilter = ClipboardFilterState.Current;
             _filterStartTime = ClipboardTimeFilterState.StartTime;
             _filterEndTime = ClipboardTimeFilterState.EndTime;
+            // sync quick category dropdown selection
+            UpdateQuickFilterButtonVisual(_categoryFilter);
         }
 
         public void OnHostWindowVisibilityChanged(bool isVisible)
@@ -170,8 +222,56 @@ namespace LiuYun.Views
             }
             else
             {
+                if (_isWindowPinned)
+                {
+                    ResetPinStateToDefault();
+                }
                 EnterBackgroundMemorySavingMode();
             }
+        }
+
+        private void ResetPinStateToDefault()
+        {
+            try
+            {
+                _isWindowPinned = false;
+                ApplyPinVisuals(false);
+
+                if (App.Current is App app)
+                {
+                    try
+                    {
+                        app.IsClipboardPinned = false;
+                        app.EndAutoHideSuppression();
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+        }
+
+        private void ApplyPinVisuals(bool pinned)
+        {
+            try
+            {
+                // button background + opacity + tooltip
+                if (PinToggleButton != null && Application.Current != null && Application.Current.Resources != null)
+                {
+                    var bgKey = pinned ? "AccentFillColorDefaultBrush" : "CardBackgroundFillColorDefaultBrush";
+                    if (Application.Current.Resources.ContainsKey(bgKey))
+                    {
+                        PinToggleButton.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[bgKey];
+                    }
+                    else
+                    {
+                        PinToggleButton.Background = pinned ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xE5, 0xE5, 0xE5)) : null;
+                    }
+
+                    PinToggleButton.Opacity = pinned ? 0.95 : 1.0;
+                    try { ToolTipService.SetToolTip(PinToggleButton, pinned ? "已钉住：启用后粘贴不会自动隐藏窗口" : "钉住：启用后粘贴不会自动隐藏窗口"); } catch { }
+                }
+            }
+            catch { }
         }
 
         private void EnterBackgroundMemorySavingMode()
@@ -394,6 +494,18 @@ namespace LiuYun.Views
             OnPropertyChanged(nameof(ListModeToggleTooltip));
             OnPropertyChanged(nameof(FavoriteQuickButtonText));
             OnPropertyChanged(nameof(HistoryEmptyHintVisibility));
+            // show filter button only in history mode
+            try
+            {
+                if (QuickFilterButton != null)
+                {
+                    QuickFilterButton.Visibility = _currentListMode == ClipboardListMode.History ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            catch
+            {
+                // ignore if UI not ready
+            }
         }
 
         private void UpdateInlineFavoriteButtonText(Border deleteButton)
@@ -607,6 +719,9 @@ namespace LiuYun.Views
         {
             try
             {
+                // prevent other flows from forcing selection to first on next refresh
+                _forceSelectFirstOnNextRefresh = false;
+
                 await Task.Run(() => DatabaseService.DeleteFavoriteClipboardItem(favoriteItem.Id));
                 TryDeleteFavoriteImageFile(favoriteItem.ImagePath);
 
@@ -615,11 +730,37 @@ namespace LiuYun.Views
                     favoriteItem.ClearImageCache();
                 }
 
+                // record neighbor selection to preserve viewport
+                int filteredIndex = -1;
+                ClipboardItem? neighborSelection = null;
+                try
+                {
+                    if (FilteredItems != null)
+                    {
+                        filteredIndex = FilteredItems.IndexOf(favoriteItem);
+                        if (filteredIndex >= 0)
+                        {
+                            if (filteredIndex < FilteredItems.Count - 1)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex + 1];
+                            }
+                            else if (filteredIndex - 1 >= 0)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex - 1];
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore concurrency issues when reading FilteredItems
+                }
+
                 _favoriteItems.Remove(favoriteItem);
 
                 if (ReferenceEquals(_keyboardSelectedItem, favoriteItem))
                 {
-                    SetKeyboardSelectedItem(null);
+                    SetKeyboardSelectedItem(neighborSelection);
                 }
 
                 if (refreshList && _currentListMode == ClipboardListMode.Favorite)
@@ -740,7 +881,27 @@ namespace LiuYun.Views
             {
                 RefreshFilteredItems();
                 UpdateCategoryFilterTooltip();
+                UpdateQuickFilterButtonVisual(filter);
             });
+        }
+
+        private void UpdateQuickFilterButtonVisual(ClipboardCategoryFilter filter)
+        {
+            try
+            {
+                if (QuickFilterGlyph != null && QuickFilterButton != null)
+                {
+                    var glyph = GetCategoryGlyph(filter);
+                    QuickFilterGlyph.Glyph = string.IsNullOrEmpty(glyph) ? "\uE71C" : glyph;
+                    QuickFilterButton.Opacity = filter == ClipboardCategoryFilter.All ? 1.0 : 0.95;
+                    // tooltip
+                    var label = GetCategoryFilterLabel(filter);
+                    ToolTipService.SetToolTip(QuickFilterButton, $"筛选: {label}");
+                }
+            }
+            catch
+            {
+            }
         }
 
         private void ClipboardTimeFilterState_FilterChanged(object? sender, EventArgs e)
@@ -792,6 +953,9 @@ namespace LiuYun.Views
                 _isRefreshingFilteredItems = false;
                 return;
             }
+
+            // save current scroll offset so we can attempt to restore it after incremental updates
+            SaveClipboardScrollOffsetSnapshot();
 
             try
             {
@@ -847,6 +1011,9 @@ namespace LiuYun.Views
 
                 OnPropertyChanged(nameof(HistoryEmptyHintVisibility));
                 ApplyKeyboardSelectionAfterRefresh();
+
+                // try to restore saved scroll offset if present; otherwise clamp to valid range
+                TryRestoreClipboardScrollOffsetSnapshot();
                 ClampClipboardScrollOffset();
             }
             finally
@@ -1114,6 +1281,134 @@ namespace LiuYun.Views
         {
         }
 
+        private void QuickFilterButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var flyout = new Flyout();
+
+                // compute counts snapshot
+                var itemsSnapshot = clipboardModel?.Items ?? Enumerable.Empty<ClipboardItem>();
+                int cnt_all = itemsSnapshot.Count();
+                int cnt_text = itemsSnapshot.Count(i => i.ContentType == ClipboardContentType.Text);
+                int cnt_code = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.Code);
+                int cnt_json = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.Json);
+                int cnt_longNumber = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.LongNumber);
+                int cnt_image = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.Image);
+                int cnt_file = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.FilePath);
+                int cnt_link = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.Link);
+                int cnt_email = itemsSnapshot.Count(i => i.SemanticType == ClipboardSemanticType.Email);
+
+                var panel = new StackPanel { Orientation = Orientation.Vertical };
+
+                void addItem(ClipboardCategoryFilter f, string label)
+                {
+                    string suffix = f switch
+                    {
+                        ClipboardCategoryFilter.All => $" ({cnt_all})",
+                        ClipboardCategoryFilter.Text => $" ({cnt_text})",
+                        ClipboardCategoryFilter.Code => $" ({cnt_code})",
+                        ClipboardCategoryFilter.Json => $" ({cnt_json})",
+                        ClipboardCategoryFilter.LongNumber => $" ({cnt_longNumber})",
+                        ClipboardCategoryFilter.Image => $" ({cnt_image})",
+                        ClipboardCategoryFilter.File => $" ({cnt_file})",
+                        ClipboardCategoryFilter.Link => $" ({cnt_link})",
+                        ClipboardCategoryFilter.Email => $" ({cnt_email})",
+                        _ => string.Empty,
+                    };
+
+                    var item = new RadioButton { Tag = f, GroupName = "QuickFilterGroup" };
+
+                    // build content: Grid with icon | label | count (right-aligned)
+                    var grid = new Grid();
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                    var iconGlyph = GetCategoryGlyph(f);
+                    if (!string.IsNullOrEmpty(iconGlyph))
+                    {
+                        var iconEl = new FontIcon { Glyph = iconGlyph, FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+                        Grid.SetColumn(iconEl, 0);
+                        grid.Children.Add(iconEl);
+                    }
+
+                    var labelText = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+                    Grid.SetColumn(labelText, 1);
+                    grid.Children.Add(labelText);
+
+                    var countText = new TextBlock { Text = suffix, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
+                    try
+                    {
+                        if (Application.Current != null && Application.Current.Resources.ContainsKey("TextFillColorSecondaryBrush"))
+                        {
+                            countText.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+                        }
+                    }
+                    catch
+                    {
+                        // ignore resource lookup failures
+                    }
+                    Grid.SetColumn(countText, 2);
+                    grid.Children.Add(countText);
+
+                    item.Content = grid;
+                    item.IsChecked = ClipboardFilterState.Current == f;
+                    item.Checked += (_, __) =>
+                    {
+                        try
+                        {
+                            ClipboardFilterState.Current = f;
+                            flyout.Hide();
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"QuickFilter selection failed: {ex.Message}");
+                        }
+                    };
+
+                    panel.Children.Add(item);
+                }
+
+                addItem(ClipboardCategoryFilter.All, "全部");
+                addItem(ClipboardCategoryFilter.Text, "文本");
+                addItem(ClipboardCategoryFilter.Image, "图片");
+                addItem(ClipboardCategoryFilter.Link, "链接");
+                addItem(ClipboardCategoryFilter.Email, "邮箱");
+                addItem(ClipboardCategoryFilter.File, "文件");
+                addItem(ClipboardCategoryFilter.Code, "代码");
+                addItem(ClipboardCategoryFilter.Json, "JSON");
+                addItem(ClipboardCategoryFilter.LongNumber, "数字");
+
+                flyout.Content = panel;
+                if (sender is FrameworkElement fe)
+                {
+                    flyout.ShowAt(fe);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"QuickFilterButton_Click failed: {ex.Message}");
+            }
+        }
+
+        private static string GetCategoryGlyph(ClipboardCategoryFilter f)
+        {
+            return f switch
+            {
+                ClipboardCategoryFilter.All => "\uE71D",
+                ClipboardCategoryFilter.Text => "\uE8C8",
+                ClipboardCategoryFilter.Image => "\uE91B",
+                ClipboardCategoryFilter.Link => "\uE71B",
+                ClipboardCategoryFilter.Email => "\uE715",
+                ClipboardCategoryFilter.File => "\uE8B7",
+                ClipboardCategoryFilter.Code => "\uE943",
+                ClipboardCategoryFilter.Json => "\uE943",
+                ClipboardCategoryFilter.LongNumber => "\uE8C8",
+                _ => string.Empty,
+            };
+        }
+
         private async void ClipboardPage_KeyDown(object sender, KeyRoutedEventArgs e)
         {
             if (!_isHostWindowVisible || _isLoading || _isSubmittingKeyboardSelection)
@@ -1169,6 +1464,8 @@ namespace LiuYun.Views
                 return;
             }
 
+            PromoteClipboardItem(selected);
+
             _isSubmittingKeyboardSelection = true;
             try
             {
@@ -1188,11 +1485,6 @@ namespace LiuYun.Views
         {
             bool isFavoriteMode = _currentListMode == ClipboardListMode.Favorite;
             Frame.Navigate(typeof(NavigationHubPage), isFavoriteMode);
-        }
-
-        private void OpenEmojiPageButton_Click(object sender, RoutedEventArgs e)
-        {
-            Frame.Navigate(typeof(EmojiPage));
         }
 
         private void UpdateTimeFilterLabel()
@@ -1226,7 +1518,7 @@ namespace LiuYun.Views
                 timeText = $"<={_filterEndTime:MM-dd}";
             }
 
-            ToolTipService.SetToolTip(SettingsActionButton, $"分类: {categoryText} | 时间: {timeText}");
+            ToolTipService.SetToolTip(SettingsActionButton, "分类: " + categoryText + " | 时间: " + timeText);
         }
 
         private async void ClipboardPage_Loaded(object sender, RoutedEventArgs e)
@@ -1265,6 +1557,9 @@ namespace LiuYun.Views
             {
                 _ = WarmupFavoriteItemsAsync();
             }
+
+            // sync pin button visual with app state
+            SyncPinButtonFromAppState();
 
             if (model.IsLoaded)
             {
@@ -1352,6 +1647,45 @@ namespace LiuYun.Views
             }
         }
 
+        private void PromoteClipboardItem(ClipboardItem item)
+        {
+            if (item == null)
+            {
+                return;
+            }
+
+            DateTime now = DateTime.Now;
+
+            if (_currentListMode == ClipboardListMode.History && item.Id > 0)
+            {
+                item.Timestamp = now;
+                bool updated = DatabaseService.UpdateClipboardItemTimestamp(item.Id, now);
+                if (updated)
+                {
+                    RefreshFilteredItems();
+                }
+
+                return;
+            }
+
+            if (_currentListMode == ClipboardListMode.Favorite)
+            {
+                var historyMatch = clipboardModel?.Items?.FirstOrDefault(x =>
+                    x.ContentType == item.ContentType &&
+                    string.Equals(x.ContentHash, item.ContentHash, StringComparison.Ordinal));
+
+                if (historyMatch != null && historyMatch.Id > 0)
+                {
+                    historyMatch.Timestamp = now;
+                    bool updated = DatabaseService.UpdateClipboardItemTimestamp(historyMatch.Id, now);
+                    if (updated)
+                    {
+                        RefreshFilteredItems();
+                    }
+                }
+            }
+        }
+
         private async void ClipboardCard_Tapped(object sender, TappedRoutedEventArgs e)
         {
             e.Handled = true;
@@ -1363,6 +1697,8 @@ namespace LiuYun.Views
 
             if (sender is Border border && border.Tag is ClipboardItem item)
             {
+                PromoteClipboardItem(item);
+
                 _isSubmittingKeyboardSelection = true;
                 try
                 {
@@ -1419,6 +1755,54 @@ namespace LiuYun.Views
                 ClampClipboardScrollOffsetCore();
                 _ = DispatcherQueue.TryEnqueue(ClampClipboardScrollOffsetCore);
             });
+        }
+
+        private void SaveClipboardScrollOffsetSnapshot()
+        {
+            try
+            {
+                if (ClipboardScrollViewer != null)
+                {
+                    _savedClipboardScrollOffset = ClipboardScrollViewer.VerticalOffset;
+                }
+                else
+                {
+                    _savedClipboardScrollOffset = null;
+                }
+            }
+            catch
+            {
+                _savedClipboardScrollOffset = null;
+            }
+        }
+
+        private void TryRestoreClipboardScrollOffsetSnapshot()
+        {
+            if (_savedClipboardScrollOffset == null || ClipboardScrollViewer == null || DispatcherQueue == null)
+            {
+                _savedClipboardScrollOffset = null;
+                return;
+            }
+
+            double targetOffset = Math.Clamp(_savedClipboardScrollOffset.Value, 0, ClipboardScrollViewer.ScrollableHeight);
+
+            // perform restore after layout passes to ensure ScrollableHeight is accurate
+            _ = DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    ClipboardItemsRepeater?.UpdateLayout();
+                    ClipboardScrollViewer.UpdateLayout();
+                    double clamped = Math.Clamp(targetOffset, 0, ClipboardScrollViewer.ScrollableHeight);
+                    ClipboardScrollViewer.ChangeView(null, clamped, null, true);
+                }
+                catch
+                {
+                    // ignore failures
+                }
+            });
+
+            _savedClipboardScrollOffset = null;
         }
 
         private void ClampClipboardScrollOffsetCore()
@@ -1668,6 +2052,57 @@ namespace LiuYun.Views
             await RemoveFromFavoritesAsync(item);
         }
 
+        private async void OcrQuickButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.Tag is not ClipboardItem item)
+            {
+                return;
+            }
+
+            if (item.ContentType != ClipboardContentType.Image || string.IsNullOrWhiteSpace(item.ImagePath) || !File.Exists(item.ImagePath))
+            {
+                Debug.WriteLine("OCR: no image available for this item.");
+                return;
+            }
+
+            try
+            {
+                var file = await StorageFile.GetFileFromPathAsync(item.ImagePath);
+                using (var stream = await file.OpenAsync(FileAccessMode.Read))
+                {
+                    var decoder = await BitmapDecoder.CreateAsync(stream);
+                    var softwareBitmap = await decoder.GetSoftwareBitmapAsync(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied);
+
+                    var ocrEngine = OcrEngine.TryCreateFromUserProfileLanguages();
+                    if (ocrEngine == null)
+                    {
+                        Debug.WriteLine("OCR engine unavailable on this system.");
+                        return;
+                    }
+
+                    var ocrResult = await ocrEngine.RecognizeAsync(softwareBitmap);
+                    string recognized = ocrResult?.Text ?? string.Empty;
+
+                    if (string.IsNullOrWhiteSpace(recognized))
+                    {
+                        Debug.WriteLine("OCR: no text recognized.");
+                        return;
+                    }
+
+                    var dp = new DataPackage();
+                    dp.SetText(recognized);
+                    Clipboard.SetContent(dp);
+                    Clipboard.Flush();
+
+                    Debug.WriteLine($"OCR: recognized text copied to clipboard (len={recognized.Length}).");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"OCR failed: {ex.Message}");
+            }
+        }
+
         private async Task<bool> RemoveFromHistoryAsync(ClipboardItem historyItem, bool refreshList = true)
         {
             try
@@ -1690,6 +2125,34 @@ namespace LiuYun.Views
                     }
                 }
 
+
+                // Record neighbor selection to preserve viewport after removal.
+                int filteredIndex = -1;
+                ClipboardItem? neighborSelection = null;
+                try
+                {
+                    if (FilteredItems != null)
+                    {
+                        filteredIndex = FilteredItems.IndexOf(historyItem);
+                        if (filteredIndex >= 0)
+                        {
+                            // prefer next item; if none, pick previous
+                            if (filteredIndex < FilteredItems.Count - 1)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex + 1];
+                            }
+                            else if (filteredIndex - 1 >= 0)
+                            {
+                                neighborSelection = FilteredItems[filteredIndex - 1];
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore any concurrency issues reading FilteredItems
+                }
+
                 bool removedFromCollection = clipboardModel.Items.Remove(historyItem);
                 if (!removedFromCollection && historyItem.Id > 0)
                 {
@@ -1701,19 +2164,13 @@ namespace LiuYun.Views
                     }
                 }
 
+                // If the removed item was the keyboard-selected one, try to select a neighbor to keep viewport stable.
                 if (ReferenceEquals(_keyboardSelectedItem, historyItem))
                 {
-                    SetKeyboardSelectedItem(null);
+                    SetKeyboardSelectedItem(neighborSelection);
                 }
 
-                if (_keyboardSelectedItem == null)
-                {
-                    _forceSelectFirstOnNextRefresh = true;
-                }
-
-                if (refreshList &&
-                    _currentListMode == ClipboardListMode.History &&
-                    !removedFromCollection)
+                if (refreshList && _currentListMode == ClipboardListMode.History)
                 {
                     RefreshFilteredItems();
                 }
@@ -1770,6 +2227,11 @@ namespace LiuYun.Views
                     {
                         return false;
                     }
+                }
+
+                if (App.Current is App currentApp)
+                {
+                    currentApp.SuppressClipboardMonitorFor(TimeSpan.FromMilliseconds(1000));
                 }
 
                 var tcs = new TaskCompletionSource<bool>();
