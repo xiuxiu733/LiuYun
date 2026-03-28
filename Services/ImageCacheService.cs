@@ -23,13 +23,18 @@ namespace LiuYun.Services
                 return;
             }
 
-            try
-            {
-                image.UriSource = null;
-            }
-            catch
-            {
-            }
+            // Keep the UriSource intact when releasing from cache.
+            // Clearing UriSource can cause already-bound Image controls to become blank.
+            //if (image.UriSource != null)
+            //{
+            //    try
+            //    {
+            //        image.UriSource = null;
+            //    }
+            //    catch
+            //    {
+            //    }
+            //}
         }
 
         public ImageCacheService(int maxCacheSize = 30)
