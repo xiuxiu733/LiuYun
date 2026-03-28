@@ -98,7 +98,23 @@ namespace LiuYun.Models
             }
         }
 
-        public DateTime Timestamp { get; set; }
+        private DateTime _timestamp;
+
+        public DateTime Timestamp
+        {
+            get => _timestamp;
+            set
+            {
+                if (_timestamp == value)
+                {
+                    return;
+                }
+
+                _timestamp = value;
+                OnPropertyChanged(nameof(Timestamp));
+                OnPropertyChanged(nameof(DisplayTime));
+            }
+        }
 
         public string ContentHash
         {
@@ -226,7 +242,13 @@ namespace LiuYun.Models
                 if (_weakImageSource != null &&
                     _weakImageSource.TryGetTarget(out BitmapImage? weakCachedImage))
                 {
-                    return weakCachedImage;
+                    // If bitmap source is reset (e.g., evicted from cache), refresh with a new image
+                    if (weakCachedImage.UriSource != null)
+                    {
+                        return weakCachedImage;
+                    }
+
+                    _weakImageSource = null;
                 }
 
                 if (!_thumbnailLoadingEnabled)

@@ -391,6 +391,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <AutoSuggestBox Grid.Column="0"
@@ -412,7 +413,22 @@
                 </AutoSuggestBox.Resources>
             </AutoSuggestBox>
 
-            <Button Grid.Column="1"
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
+                <Button x:Name="QuickFilterButton"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        Click="QuickFilterButton_Click"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}">
+                    <FontIcon x:Name="QuickFilterGlyph" Glyph="&#xE71C;" FontSize="14" VerticalAlignment="Center"/>
+                </Button>
+            </StackPanel>
+
+        <Button Grid.Column="2"
                     Width="30"
                     Height="30"
                     Padding="0"
@@ -426,7 +442,7 @@
             </Button>
 
             <Button x:Name="SettingsActionButton"
-                    Grid.Column="2"
+                    Grid.Column="3"
                     Width="30"
                     Height="30"
                     Padding="0"
