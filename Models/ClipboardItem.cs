@@ -98,7 +98,23 @@ namespace LiuYun.Models
             }
         }
 
-        public DateTime Timestamp { get; set; }
+        private DateTime _timestamp;
+
+        public DateTime Timestamp
+        {
+            get => _timestamp;
+            set
+            {
+                if (_timestamp == value)
+                {
+                    return;
+                }
+
+                _timestamp = value;
+                OnPropertyChanged(nameof(Timestamp));
+                OnPropertyChanged(nameof(DisplayTime));
+            }
+        }
 
         public string ContentHash
         {

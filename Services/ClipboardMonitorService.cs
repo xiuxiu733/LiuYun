@@ -260,6 +260,12 @@ namespace LiuYun.Services
                 return;
             }
 
+            if (App.Current is App app && app.IsClipboardMonitorSuppressed())
+            {
+                LogDiag("DROP_SUPPRESSED_PROGRAMMATIC_EVENT");
+                return;
+            }
+
             long nowTicks = DateTime.UtcNow.Ticks;
             long lastTicks = Interlocked.Read(ref _lastEventTimeTicks);
             long elapsedMs = (nowTicks - lastTicks) / TimeSpan.TicksPerMillisecond;

@@ -362,6 +362,21 @@
                                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="{StaticResource OverlayCornerRadius}"
+                                                Visibility="{x:Bind ImageVisibility}"
+                                                Tapped="MenuButton_Tapped"
+                                                Click="OcrQuickButton_Click">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                                <FontIcon Glyph="&#xE8A5;" FontSize="11"/>
+                                                <TextBlock Text="识别文字"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Tag="{x:Bind}"
+                                                MinHeight="24"
+                                                Padding="8,2"
+                                                Background="{x:Bind ContentPanelBackground}"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{StaticResource OverlayCornerRadius}"
                                                 Tapped="MenuButton_Tapped"
                                                 Click="DeleteQuickButton_Click">
                                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
@@ -391,6 +406,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <AutoSuggestBox Grid.Column="0"
@@ -412,21 +428,39 @@
                 </AutoSuggestBox.Resources>
             </AutoSuggestBox>
 
-            <Button Grid.Column="1"
-                    Width="30"
-                    Height="30"
-                    Padding="0"
-                    Click="OpenEmojiPageButton_Click"
-                    VerticalAlignment="Center"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource OverlayCornerRadius}">
-                <FontIcon Glyph="&#xE899;" FontSize="12"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="6">
+                <Button x:Name="QuickFilterButton"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        Click="QuickFilterButton_Click"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}">
+                    <FontIcon x:Name="QuickFilterGlyph" Glyph="&#xE71C;" FontSize="14" VerticalAlignment="Center"/>
+                </Button>
+            </StackPanel>
+
+        <Button x:Name="PinToggleButton"
+                        Grid.Column="2"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        Click="PinToggleButton_Click"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource OverlayCornerRadius}"
+                        ToolTipService.ToolTip="钉住：启用后粘贴不会自动隐藏窗口">
+                <FontIcon x:Name="PinGlyph" Glyph="&#xE718;" FontSize="12"/>
             </Button>
 
+
             <Button x:Name="SettingsActionButton"
-                    Grid.Column="2"
+                    Grid.Column="4"
                     Width="30"
                     Height="30"
                     Padding="0"

@@ -656,5 +656,31 @@ namespace LiuYun.Services
                 : path + Path.DirectorySeparatorChar;
         }
 
+        public static bool UpdateClipboardItemTimestamp(int id, DateTime timestamp)
+        {
+            DbWriteLock.Wait();
+            try
+            {
+                using var connection = new SqliteConnection(ConnectionString);
+                connection.Open();
+
+                using var updateCmd = connection.CreateCommand();
+                updateCmd.CommandText = @"
+                    UPDATE ClipboardHistory
+                    SET Timestamp = $timestamp
+                    WHERE Id = $id";
+
+                updateCmd.Parameters.AddWithValue("$timestamp", timestamp.ToString("o"));
+                updateCmd.Parameters.AddWithValue("$id", id);
+
+                int rowsAffected = updateCmd.ExecuteNonQuery();
+                return rowsAffected > 0;
+            }
+            finally
+            {
+                DbWriteLock.Release();
+            }
+        }
+
     }
 }

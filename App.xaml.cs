@@ -43,7 +43,7 @@ namespace LiuYun
         private const int ActiveWindowActivationRetries = 4;
         private const float WindowAnimationOffset = 12f;
         private const int ClipboardPreloadLimit = 300;
-        private const int CursorPlacementOffsetPx = 8;
+        public const int CursorPlacementOffsetPx = 8;
         private const string StartupLaunchArgument = "--startup";
         private const string SingleInstanceMutexName = @"Local\LiuYun.SingleInstance.Mutex";
         private const string SingleInstanceActivationEventName = @"Local\LiuYun.SingleInstance.Activate";
@@ -75,6 +75,7 @@ namespace LiuYun
         private Task? _singleInstanceActivateListenerTask;
         public AutoPasteFallbackReason LastAutoPasteFallbackReason { get; private set; } = AutoPasteFallbackReason.None;
         public bool AutoHideOnDeactivate { get; private set; } = true;
+        public bool IsClipboardPinned { get; set; } = false;
         public bool IsMainWindowVisible => !_isWindowHidden;
 
         public enum AutoPasteFallbackReason
@@ -119,12 +120,11 @@ namespace LiuYun
                 DisposeTrayIcon();
                 Exit();
             };
-            m_window.Activate();
-            if (_isStartupLaunch)
-            {
-                HideWindowForStartupLaunch();
-            }
-            InitializeTrayIcon();
+            // Always start hidden by default; user can open via hotkey or tray icon.
+            // For startup launches we already treat as silent. For non-startup launches
+            // we also keep the window hidden and will show a brief tray notification.
+            HideWindowForStartupLaunch();
+            FireAndForget(InitializeTrayIconAsync(), nameof(InitializeTrayIconAsync));
             StartSingleInstanceActivationListener();
 
             _backgroundTaskQueue = new BackgroundTaskQueue(capacity: 1024, workerCount: 3);
@@ -391,13 +391,9 @@ namespace LiuYun
 
             CacheRootVisual();
 
-            if (_isStartupLaunch)
-            {
-                return;
-            }
-
-            ShowMainWindow();
-            await ForceActivateMainWindowAsync();
+            // For non-startup (manual) launches we intentionally keep the window hidden
+            // and rely on the tray/info tip and hotkeys to open the UI.
+            return;
         }
 
         private void HideWindowForStartupLaunch()
@@ -454,7 +450,7 @@ namespace LiuYun
 
         public static Window? MainWindow => ((App)Current).m_window;
 
-        private void InitializeTrayIcon()
+        private async Task InitializeTrayIconAsync()
         {
             if (m_window is null)
             {
@@ -476,8 +472,83 @@ namespace LiuYun
                 {
                     ExitApplication();
                 };
+                service.ToggleStartupRequested += async (_, __) =>
+                {
+                    try
+                    {
+                        var startupService = new StartupService();
+                        var state = await startupService.GetStateAsync();
+                        StartupStateInfo newState;
+                        if (state.IsEnabled)
+                        {
+                            newState = await startupService.DisableAsync();
+                        }
+                        else
+                        {
+                            newState = await startupService.EnableAsync();
+                        }
+
+                        // Update menu checked state based on resulting state
+                        service.SetStartupChecked(newState.IsEnabled);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Toggle startup failed: {ex}");
+                    }
+                };
+                service.ClearHistoryRequested += async (_, __) =>
+                {
+                    try
+                    {
+                        if (ClipboardModel != null)
+                        {
+                            await ClipboardModel.ClearAllAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Clear history failed: {ex}");
+                    }
+                };
+                service.OpenSettingsRequested += (_, __) =>
+                {
+                    try
+                    {
+                        ShowMainWindow();
+                        m_window?.DispatcherQueue.TryEnqueue(() => m_window.NavigateRoot(typeof(LiuYun.Views.SettingsPage)));
+                        FireAndForget(ForceActivateMainWindowAsync(), nameof(ForceActivateMainWindowAsync));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Open settings failed: {ex}");
+                    }
+                };
+
+                // Initialize checked state from StartupService
+                try
+                {
+                    var startupService = new StartupService();
+                    var state = await startupService.GetStateAsync();
+                    service.SetStartupChecked(state.IsEnabled);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to query startup state: {ex}");
+                }
 
                 _trayIconService = service;
+                // If this was a normal (non-startup) launch, inform the user the app is running minimized.
+                try
+                {
+                    if (!_isStartupLaunch)
+                    {
+                        service.ShowInfoTip("LiuYun", "LiuYun 正以最小化方式运行，可通过热键或单击任务栏图标打开");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to show startup info tip: {ex}");
+                }
             }
             catch (Exception ex)
             {
@@ -912,12 +983,43 @@ namespace LiuYun
             _capturedInvocationWindow = foreground;
         }
 
+        public void CaptureInvocationWindowFromCurrentForeground()
+        {
+            if (m_window is null)
+            {
+                return;
+            }
+
+            IntPtr foreground = GetForegroundWindow();
+            if (foreground == IntPtr.Zero || !IsWindow(foreground))
+            {
+                return;
+            }
+
+            IntPtr self = WindowNative.GetWindowHandle(m_window);
+            if (foreground == self || IsCurrentProcessWindow(foreground) || IsShellOrDesktopWindow(foreground))
+            {
+                return;
+            }
+
+            _capturedInvocationWindow = foreground;
+            _capturedInvocationFocusWindow = GetFocusedWindowForActive(foreground);
+        }
+
         public async Task<bool> TryAutoPasteToCapturedTargetAsync()
         {
             LastAutoPasteFallbackReason = AutoPasteFallbackReason.None;
 
             IntPtr target = _capturedInvocationWindow;
             IntPtr focus = _capturedInvocationFocusWindow;
+
+            if (IsClipboardPinned && (target == IntPtr.Zero || !IsWindow(target) || IsCurrentProcessWindow(target) || IsShellOrDesktopWindow(target)))
+            {
+                // If pinned and captured target is invalid or unset, refresh from current foreground window as a best-effort target.
+                CaptureInvocationWindowFromCurrentForeground();
+                target = _capturedInvocationWindow;
+                focus = _capturedInvocationFocusWindow;
+            }
 
             if (target == IntPtr.Zero)
             {
@@ -973,8 +1075,12 @@ namespace LiuYun
                 return false;
             }
 
-            _capturedInvocationWindow = IntPtr.Zero;
-            _capturedInvocationFocusWindow = IntPtr.Zero;
+            if (!IsClipboardPinned)
+            {
+                _capturedInvocationWindow = IntPtr.Zero;
+                _capturedInvocationFocusWindow = IntPtr.Zero;
+            }
+
             return true;
         }
 
@@ -1425,6 +1531,12 @@ namespace LiuYun
 
         public async Task TriggerWindowHideAsync()
         {
+            // If clipboard UI is pinned, do not hide the main window.
+            if (IsClipboardPinned)
+            {
+                return;
+            }
+
             if (m_window is null || _isWindowHidden)
             {
                 return;
@@ -1948,8 +2060,8 @@ namespace LiuYun
             {
                 var diagnostics = HotkeyDiagnosticsService.RunDiagnostics();
                 message += $"=== 诊断信息 ==={Environment.NewLine}";
-                message += $"管理员权限: {(diagnostics.IsRunningAsAdmin ? "是" : "否")}{Environment.NewLine}";
-                message += $"系统剪贴板历史: {(diagnostics.ClipboardHistoryEnabled ? "已启用(占用Win+V)" : "已禁用")}{Environment.NewLine}{Environment.NewLine}";
+                message += "管理员权限: " + (diagnostics.IsRunningAsAdmin ? "是" : "否") + Environment.NewLine;
+                message += "系统剪贴板历史: " + (diagnostics.ClipboardHistoryEnabled ? "已启用(占用Win+V)" : "已禁用") + Environment.NewLine + Environment.NewLine;
             }
 
             message += "应用将继续运行，但快捷键在本次会话中不可用。";
@@ -2188,5 +2300,18 @@ namespace LiuYun
         private const uint SWP_NOACTIVATE = 0x0010;
         private static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
         private static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
+
+        private long _clipboardMonitorSuppressedUntilTicks;
+
+        public void SuppressClipboardMonitorFor(TimeSpan duration)
+        {
+            long suppressionUntil = DateTime.UtcNow.Add(duration).Ticks;
+            Interlocked.Exchange(ref _clipboardMonitorSuppressedUntilTicks, suppressionUntil);
+        }
+
+        public bool IsClipboardMonitorSuppressed()
+        {
+            return DateTime.UtcNow.Ticks < Interlocked.Read(ref _clipboardMonitorSuppressedUntilTicks);
+        }
     }
 }

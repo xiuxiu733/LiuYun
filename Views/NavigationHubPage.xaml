@@ -95,7 +95,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="All" Click="CategoryFilterButton_Click">
+                        <Button x:Name="AllCategoryButton" Grid.Row="0" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="All" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE71D;" FontSize="12"/>
                                 <TextBlock Text="全部" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -104,7 +104,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Text" Click="CategoryFilterButton_Click">
+                        <Button x:Name="TextCategoryButton" Grid.Row="0" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Text" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE8C8;" FontSize="12"/>
                                 <TextBlock Text="文本" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -113,7 +113,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Code" Click="CategoryFilterButton_Click">
+                        <Button x:Name="CodeCategoryButton" Grid.Row="0" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Code" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE943;" FontSize="12"/>
                                 <TextBlock Text="代码" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -123,7 +123,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Grid.Row="1" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="Json" Click="CategoryFilterButton_Click">
+                        <Button x:Name="JsonCategoryButton" Grid.Row="1" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="Json" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE943;" FontSize="12"/>
                                 <TextBlock Text="JSON" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -132,7 +132,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="LongNumber" Click="CategoryFilterButton_Click">
+                        <Button x:Name="LongNumberCategoryButton" Grid.Row="1" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="LongNumber" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE8C8;" FontSize="12"/>
                                 <TextBlock Text="数字" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -141,7 +141,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Image" Click="CategoryFilterButton_Click">
+                        <Button x:Name="ImageCategoryButton" Grid.Row="1" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Image" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE91B;" FontSize="12"/>
                                 <TextBlock Text="图片" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -151,7 +151,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Grid.Row="2" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="File" Click="CategoryFilterButton_Click">
+                        <Button x:Name="FileCategoryButton" Grid.Row="2" Grid.Column="0" Style="{StaticResource HubActionButtonStyle}" Tag="File" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE8B7;" FontSize="12"/>
                                 <TextBlock Text="文件" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -160,7 +160,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Link" Click="CategoryFilterButton_Click">
+                        <Button x:Name="LinkCategoryButton" Grid.Row="2" Grid.Column="1" Style="{StaticResource HubActionButtonStyle}" Tag="Link" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE71B;" FontSize="12"/>
                                 <TextBlock Text="链接" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -169,7 +169,7 @@
                                 </Border>
                             </StackPanel>
                         </Button>
-                        <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Email" Click="CategoryFilterButton_Click">
+                        <Button x:Name="EmailCategoryButton" Grid.Row="2" Grid.Column="2" Style="{StaticResource HubActionButtonStyle}" Tag="Email" Click="CategoryFilterButton_Click">
                             <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE715;" FontSize="12"/>
                                 <TextBlock Text="邮箱" Style="{StaticResource CategoryLabelTextStyle}" VerticalAlignment="Center"/>
@@ -228,7 +228,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button Grid.Row="0"
+                            <Button x:Name="QuickTodayButton" Grid.Row="0"
                                     Grid.Column="0"
                                     Content="今天"
                                     Padding="10,6"
@@ -237,7 +237,7 @@
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Click="QuickTodayFilterButton_Click"/>
-                            <Button Grid.Row="0"
+                            <Button x:Name="QuickFourteenDaysButton" Grid.Row="0"
                                     Grid.Column="1"
                                     Content="14天"
                                     Padding="10,6"
@@ -246,7 +246,7 @@
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Click="QuickFourteenDaysFilterButton_Click"/>
-                            <Button Grid.Row="1"
+                            <Button x:Name="QuickSevenDaysButton" Grid.Row="1"
                                     Grid.Column="0"
                                     Content="7天"
                                     Padding="10,6"
@@ -255,7 +255,7 @@
                                     HorizontalContentAlignment="Center"
                                     VerticalContentAlignment="Center"
                                     Click="QuickSevenDaysFilterButton_Click"/>
-                            <Button Grid.Row="1"
+                            <Button x:Name="QuickAllButton" Grid.Row="1"
                                     Grid.Column="1"
                                     Content="全部"
                                     Padding="10,6"
